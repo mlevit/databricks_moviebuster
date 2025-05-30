@@ -1,0 +1,501 @@
+{
+  "datasets" : [ {
+    "name" : "4bd1e7ea",
+    "displayName" : "Rental Fact",
+    "query" : "SELECT * FROM identifier(:catalog || '.moviebuster_gold.rental_fact_view')",
+    "parameters" : [ {
+      "displayName" : "catalog",
+      "keyword" : "catalog",
+      "dataType" : "STRING",
+      "defaultSelection" : {
+        "values" : {
+          "dataType" : "STRING",
+          "values" : [ {
+            "value" : "marat_levit"
+          } ]
+        }
+      }
+    } ]
+  }, {
+    "name" : "f32beeeb",
+    "displayName" : "Rental Fact (Forecasted)",
+    "query" : "WITH original_table AS (\n    SELECT \n  DATE_TRUNC(\"WEEK\", `rental_date`) AS rental_date,\n  SUM(`amount`) AS amount\nFROM (\n    SELECT * FROM identifier(:catalog || '.moviebuster_gold.rental_fact_view')\n) GROUP BY 1\n  ),\n  dates AS (\n    SELECT \n      MAX(rental_date) AS max_date_column,\n      MIN(rental_date) AS min_date_column,\n      MAX_BY(amount, rental_date) AS amount\n    FROM original_table\n  ),\n  forecast_table AS (\n    SELECT \n      rental_date,\n      amount_forecast,\n      amount_upper,\n      amount_lower,\n      NULL AS amount\n    FROM AI_FORECAST(\n      TABLE(original_table),\n      horizon => (\n        SELECT\n          max_date_column + MAKE_DT_INTERVAL(CAST(FLOOR(DATEDIFF(max_date_column, min_date_column) * 0.5) AS INT), 0, 0, 0)\n        FROM dates\n      ),\n      time_col => 'rental_date',\n      value_col => 'amount'\n    )\n  )\n\n  SELECT * FROM forecast_table\n  UNION ALL\n  SELECT\n    rental_date,\n    NULL AS amount_forecast,\n    NULL AS amount_upper,\n    NULL AS amount_lower,\n    amount\n  FROM original_table\n    WHERE rental_date < (SELECT max_date_column FROM dates)\n  UNION ALL\n  SELECT\n    max_date_column AS rental_date,\n    amount AS amount_forecast,\n    amount AS amount_upper,\n    amount AS amount_lower,\n    amount\n  FROM\n    dates",
+    "parameters" : [ {
+      "displayName" : "catalog",
+      "keyword" : "catalog",
+      "dataType" : "STRING",
+      "defaultSelection" : {
+        "values" : {
+          "dataType" : "STRING",
+          "values" : [ {
+            "value" : "marat_levit"
+          } ]
+        }
+      }
+    } ]
+  } ],
+  "pages" : [ {
+    "name" : "0233c22d",
+    "displayName" : "Untitled page",
+    "layout" : [ {
+      "widget" : {
+        "name" : "e7ee8f11",
+        "queries" : [ {
+          "name" : "main_query",
+          "query" : {
+            "datasetName" : "4bd1e7ea",
+            "fields" : [ {
+              "name" : "store_country",
+              "expression" : "`store_country`"
+            }, {
+              "name" : "categories",
+              "expression" : "`categories`"
+            }, {
+              "name" : "sum(amount)",
+              "expression" : "SUM(`amount`)"
+            } ],
+            "disaggregated" : false
+          }
+        } ],
+        "spec" : {
+          "version" : 3,
+          "widgetType" : "bar",
+          "encodings" : {
+            "x" : {
+              "fieldName" : "categories",
+              "scale" : {
+                "type" : "categorical"
+              },
+              "axis" : {
+                "hideTitle" : true
+              },
+              "displayName" : "Category"
+            },
+            "y" : {
+              "fieldName" : "sum(amount)",
+              "scale" : {
+                "type" : "quantitative"
+              },
+              "axis" : {
+                "hideTitle" : true
+              },
+              "format" : {
+                "type" : "number-currency",
+                "currencyCode" : "USD",
+                "abbreviation" : "compact",
+                "decimalPlaces" : {
+                  "type" : "max",
+                  "places" : 2
+                }
+              },
+              "displayName" : "Total Spend"
+            },
+            "color" : {
+              "fieldName" : "store_country",
+              "scale" : {
+                "type" : "categorical"
+              },
+              "legend" : {
+                "position" : "bottom"
+              },
+              "displayName" : "Country"
+            }
+          },
+          "frame" : {
+            "title" : "🧑‍🤝‍🧑 Spend by Country and Category",
+            "showTitle" : true
+          }
+        }
+      },
+      "position" : {
+        "x" : 0,
+        "y" : 9,
+        "width" : 3,
+        "height" : 6
+      }
+    }, {
+      "widget" : {
+        "name" : "62c4b1c0",
+        "queries" : [ {
+          "name" : "main_query",
+          "query" : {
+            "datasetName" : "4bd1e7ea",
+            "fields" : [ {
+              "name" : "rental_rate",
+              "expression" : "`rental_rate`"
+            }, {
+              "name" : "rating",
+              "expression" : "`rating`"
+            }, {
+              "name" : "count(film_id)",
+              "expression" : "COUNT(`film_id`)"
+            } ],
+            "disaggregated" : false
+          }
+        } ],
+        "spec" : {
+          "version" : 3,
+          "widgetType" : "bar",
+          "encodings" : {
+            "x" : {
+              "fieldName" : "rating",
+              "scale" : {
+                "type" : "categorical"
+              },
+              "displayName" : "Rating"
+            },
+            "y" : {
+              "fieldName" : "count(film_id)",
+              "scale" : {
+                "type" : "quantitative"
+              },
+              "axis" : {
+                "hideTitle" : true
+              },
+              "displayName" : "Films"
+            },
+            "color" : {
+              "fieldName" : "rental_rate",
+              "scale" : {
+                "type" : "categorical"
+              },
+              "legend" : {
+                "title" : "Rental Rate",
+                "position" : "bottom"
+              },
+              "format" : {
+                "type" : "number-currency",
+                "currencyCode" : "USD",
+                "abbreviation" : "compact",
+                "decimalPlaces" : {
+                  "type" : "max",
+                  "places" : 2
+                }
+              },
+              "displayName" : "Rental Rate"
+            }
+          },
+          "frame" : {
+            "title" : "🎥 Rentals by Film Rating and Rental Rate",
+            "showTitle" : true
+          }
+        }
+      },
+      "position" : {
+        "x" : 3,
+        "y" : 9,
+        "width" : 3,
+        "height" : 6
+      }
+    }, {
+      "widget" : {
+        "name" : "c37544f9",
+        "queries" : [ {
+          "name" : "main_query",
+          "query" : {
+            "datasetName" : "4bd1e7ea",
+            "fields" : [ {
+              "name" : "sum(rental_id)",
+              "expression" : "SUM(`rental_id`)"
+            }, {
+              "name" : "store_country",
+              "expression" : "`store_country`"
+            } ],
+            "disaggregated" : false
+          }
+        } ],
+        "spec" : {
+          "version" : 3,
+          "widgetType" : "pie",
+          "encodings" : {
+            "angle" : {
+              "fieldName" : "sum(rental_id)",
+              "scale" : {
+                "type" : "quantitative"
+              },
+              "axis" : {
+                "hideTitle" : true,
+                "title" : "Rentals"
+              },
+              "displayName" : "Rentals"
+            },
+            "color" : {
+              "fieldName" : "store_country",
+              "scale" : {
+                "type" : "categorical"
+              },
+              "legend" : {
+                "title" : "Country"
+              },
+              "displayName" : "Country"
+            }
+          },
+          "frame" : {
+            "showTitle" : true,
+            "title" : "🌍 Rentals by Store Location"
+          }
+        }
+      },
+      "position" : {
+        "x" : 0,
+        "y" : 15,
+        "width" : 3,
+        "height" : 6
+      }
+    }, {
+      "widget" : {
+        "name" : "ca91d5cd",
+        "queries" : [ {
+          "name" : "main_query",
+          "query" : {
+            "datasetName" : "4bd1e7ea",
+            "fields" : [ {
+              "name" : "rental_duration",
+              "expression" : "`rental_duration`"
+            }, {
+              "name" : "count(rental_id)",
+              "expression" : "COUNT(`rental_id`)"
+            } ],
+            "filters" : [ {
+              "expression" : "`rental_duration` IS NOT NULL"
+            } ],
+            "disaggregated" : false
+          }
+        } ],
+        "spec" : {
+          "version" : 3,
+          "widgetType" : "bar",
+          "encodings" : {
+            "x" : {
+              "fieldName" : "rental_duration",
+              "scale" : {
+                "type" : "categorical"
+              },
+              "axis" : {
+                "title" : "Duration (Days)"
+              },
+              "displayName" : "Duration (Days)"
+            },
+            "y" : {
+              "fieldName" : "count(rental_id)",
+              "scale" : {
+                "type" : "quantitative"
+              },
+              "displayName" : "Rental Count"
+            }
+          },
+          "frame" : {
+            "showTitle" : true,
+            "title" : "🕒 Rental Duration Distribution"
+          }
+        }
+      },
+      "position" : {
+        "x" : 3,
+        "y" : 15,
+        "width" : 3,
+        "height" : 6
+      }
+    }, {
+      "widget" : {
+        "name" : "070d7517",
+        "textbox_spec" : "# 🎬 Moviebuster Executive Dashboard"
+      },
+      "position" : {
+        "x" : 0,
+        "y" : 0,
+        "width" : 6,
+        "height" : 2
+      }
+    }, {
+      "widget" : {
+        "name" : "173bc83c",
+        "queries" : [ {
+          "name" : "dashboards/01f03cdfc01618e5893edede0447d988/datasets/01f03cdfc8f41fb09f49d5af1d9c112a_store_country",
+          "query" : {
+            "datasetName" : "4bd1e7ea",
+            "fields" : [ {
+              "name" : "store_country",
+              "expression" : "`store_country`"
+            }, {
+              "name" : "store_country_associativity",
+              "expression" : "COUNT_IF(`associative_filter_predicate_group`)"
+            } ],
+            "disaggregated" : false
+          }
+        } ],
+        "spec" : {
+          "version" : 2,
+          "widgetType" : "filter-single-select",
+          "encodings" : {
+            "fields" : [ {
+              "fieldName" : "store_country",
+              "displayName" : "store_country",
+              "queryName" : "dashboards/01f03cdfc01618e5893edede0447d988/datasets/01f03cdfc8f41fb09f49d5af1d9c112a_store_country"
+            } ]
+          },
+          "frame" : {
+            "showTitle" : true,
+            "title" : "Country"
+          }
+        }
+      },
+      "position" : {
+        "x" : 0,
+        "y" : 2,
+        "width" : 2,
+        "height" : 1
+      }
+    }, {
+      "widget" : {
+        "name" : "67aae65a",
+        "queries" : [ {
+          "name" : "dashboards/01f03cdfc01618e5893edede0447d988/datasets/01f03cdfc8f41fb09f49d5af1d9c112a_film_title",
+          "query" : {
+            "datasetName" : "4bd1e7ea",
+            "fields" : [ {
+              "name" : "film_title",
+              "expression" : "`film_title`"
+            }, {
+              "name" : "film_title_associativity",
+              "expression" : "COUNT_IF(`associative_filter_predicate_group`)"
+            } ],
+            "disaggregated" : false
+          }
+        } ],
+        "spec" : {
+          "version" : 2,
+          "widgetType" : "filter-multi-select",
+          "encodings" : {
+            "fields" : [ {
+              "fieldName" : "film_title",
+              "displayName" : "film_title",
+              "queryName" : "dashboards/01f03cdfc01618e5893edede0447d988/datasets/01f03cdfc8f41fb09f49d5af1d9c112a_film_title"
+            } ]
+          },
+          "frame" : {
+            "showTitle" : true,
+            "title" : "Film"
+          }
+        }
+      },
+      "position" : {
+        "x" : 2,
+        "y" : 2,
+        "width" : 2,
+        "height" : 1
+      }
+    }, {
+      "widget" : {
+        "name" : "08f77742",
+        "queries" : [ {
+          "name" : "dashboards/01f03cdfc01618e5893edede0447d988/datasets/01f03cdfc8f41fb09f49d5af1d9c112a_categories",
+          "query" : {
+            "datasetName" : "4bd1e7ea",
+            "fields" : [ {
+              "name" : "categories",
+              "expression" : "`categories`"
+            }, {
+              "name" : "categories_associativity",
+              "expression" : "COUNT_IF(`associative_filter_predicate_group`)"
+            } ],
+            "disaggregated" : false
+          }
+        } ],
+        "spec" : {
+          "version" : 2,
+          "widgetType" : "filter-single-select",
+          "encodings" : {
+            "fields" : [ {
+              "fieldName" : "categories",
+              "displayName" : "categories",
+              "queryName" : "dashboards/01f03cdfc01618e5893edede0447d988/datasets/01f03cdfc8f41fb09f49d5af1d9c112a_categories"
+            } ]
+          },
+          "frame" : {
+            "showTitle" : true,
+            "title" : "Category"
+          }
+        }
+      },
+      "position" : {
+        "x" : 4,
+        "y" : 2,
+        "width" : 2,
+        "height" : 1
+      }
+    }, {
+      "widget" : {
+        "name" : "cc4a2883",
+        "queries" : [ {
+          "name" : "main_query",
+          "query" : {
+            "datasetName" : "f32beeeb",
+            "fields" : [ {
+              "name" : "rental_date",
+              "expression" : "`rental_date`"
+            }, {
+              "name" : "amount",
+              "expression" : "`amount`"
+            }, {
+              "name" : "amount_forecast",
+              "expression" : "`amount_forecast`"
+            }, {
+              "name" : "amount_upper",
+              "expression" : "`amount_upper`"
+            }, {
+              "name" : "amount_lower",
+              "expression" : "`amount_lower`"
+            } ],
+            "disaggregated" : true
+          }
+        } ],
+        "spec" : {
+          "version" : 1,
+          "widgetType" : "forecast-line",
+          "encodings" : {
+            "x" : {
+              "fieldName" : "rental_date",
+              "scale" : {
+                "type" : "temporal"
+              },
+              "displayName" : "Rental Date"
+            },
+            "y" : {
+              "scale" : {
+                "type" : "quantitative"
+              },
+              "original" : {
+                "fieldName" : "amount",
+                "displayName" : "Revenue"
+              },
+              "prediction" : {
+                "fieldName" : "amount_forecast",
+                "displayName" : "Sum of amount_forecast"
+              },
+              "predictionUpper" : {
+                "fieldName" : "amount_upper",
+                "displayName" : "Sum of amount_upper"
+              },
+              "predictionLower" : {
+                "fieldName" : "amount_lower",
+                "displayName" : "Sum of amount_lower"
+              }
+            }
+          },
+          "frame" : {
+            "title" : "📊 Total Revenue Over Time (w/ Forecast)",
+            "showTitle" : true
+          }
+        }
+      },
+      "position" : {
+        "x" : 0,
+        "y" : 3,
+        "width" : 6,
+        "height" : 6
+      }
+    } ],
+    "pageType" : "PAGE_TYPE_CANVAS"
+  } ]
+}
