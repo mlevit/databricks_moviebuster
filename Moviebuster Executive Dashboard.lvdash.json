@@ -471,15 +471,18 @@
               },
               "prediction" : {
                 "fieldName" : "amount_forecast",
-                "displayName" : "Sum of amount_forecast"
+                "displayName" : "Predicted Revenue"
               },
               "predictionUpper" : {
                 "fieldName" : "amount_upper",
-                "displayName" : "Sum of amount_upper"
+                "displayName" : "Upper Revenue"
               },
               "predictionLower" : {
                 "fieldName" : "amount_lower",
-                "displayName" : "Sum of amount_lower"
+                "displayName" : "Lower Amount"
+              },
+              "axis" : {
+                "hideTitle" : true
               }
             }
           },
